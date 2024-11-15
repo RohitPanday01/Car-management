@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  cars      Car[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+
+model Car {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String
+  carTypeId   Int      // Foreign key to CarType
+  companyId   Int     // Foreign key to Company
+  dealerId    Int      // Foreign key to Dealer
+  userId      Int       // Foreign key to User
+  images      Image[]   // Up to 10 images for the car
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
+  carType     CarType  @relation(fields: [carTypeId], references: [id])
+  company     Company @relation(fields: [companyId], references: [id])
+  dealer      Dealer  @relation(fields: [dealerId], references: [id])
+  imagesCount Int       @default(0)
+
+  @@index([title, description], map: "search_idx") // Index for title + description
+  @@index([carTypeId], map: "car_type_idx") // Index for car type filtering
+  @@index([companyId], map: "company_idx") // Index for company filtering
+  @@index([dealerId], map: "dealer_idx") // Index for dealer filtering
+  @@index([title, carTypeId], map: "title_car_type_idx") // Composite index for title + carType
+  @@index([title, companyId], map: "title_company_idx") // Composite index for title + company
+  @@index([title, dealerId], map: "title_dealer_idx") // Composite index for title + dealer
+  @@index([description, carTypeId], map: "description_car_type_idx") // Composite index for description + carType
+  @@index([description, companyId], map: "description_company_idx") // Composite index for description + company
+}
+
+model CarType {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // E.g., SUV, Sedan, etc.
+  cars  Car[]
+
+  @@index([name], map: "car_type_name_idx") // Index for searching by car type name
+}
+
+model Company {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // E.g., Toyota, Ford
+  cars  Car[]
+
+  @@index([name], map: "company_name_idx") 
+}
+
+model Dealer {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // Name of the dealer
+  cars  Car[]
+
+  @@index([name], map: "dealer_name_idx") // Index for searching by dealer name
+}
+
+model Image {
+  id       Int    @id @default(autoincrement())
+  url      String
+  carId    Int    // Foreign key to Car model
+  car      Car    @relation(fields: [carId], references: [id])
+
+  @@unique([carId, url]) // Ensure no duplicate images for a car
+}
+
+
